@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IBM Bee Catcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       START SCREEN
+       ============================================================ -->
+  <div id="start-screen" class="screen">
+    <div class="logo-area">
+      <img src="IBM Bee.png" alt="IBM Bee" class="bee-logo">
+      <h1 id="game-title">IBM Bee Catcher</h1>
+    </div>
+    <p class="subtitle">Tap or click as many bees as you can before time runs out!</p>
+    <button id="btn-start" class="btn-primary">Start Game</button>
+    <footer id="game-footer">
+      <img src="IBM Bob - Full.png" alt="IBM Bob" class="footer-bob-logo">
+      <span>Powered by IBM Bob</span>
+    </footer>
+  </div>
+
+  <!-- ============================================================
+       GAME SCREEN
+       ============================================================ -->
+  <div id="game-screen" class="screen hidden">
+    <div id="game-hud">
+      <div id="hud-score">🐝 0</div>
+      <div id="hud-timer">10</div>
+      <div id="hud-label">seconds left</div>
+    </div>
+    <div id="game-canvas-area">
+      <canvas id="bg-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       RESULT SCREEN
+       ============================================================ -->
+  <div id="result-screen" class="screen hidden">
+
+    <!-- Header row: title + score -->
+    <div id="result-header">
+      <h2>Time's up!</h2>
+      <div id="result-bees">0<span>bees caught!</span></div>
+    </div>
+
+    <!-- Body: prize box + gift image side by side -->
+    <div id="result-body">
+      <div id="result-prize-box" class="hidden">
+        <div class="prize-label">You won</div>
+        <div class="prize-name">—</div>
+        <div class="prize-gift">—</div>
+      </div>
+      <div id="result-gift-panel" class="hidden">
+        <img id="prize-gift-img" class="prize-gift-img hidden" src="" alt="Gift image">
+      </div>
+      <p id="result-no-prize" class="hidden"></p>
+    </div>
+
+    <!-- Footer: play again button -->
+    <div id="result-footer-row">
+      <button id="btn-play-again" class="btn-primary">Play Again</button>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       PASSWORD MODAL
+       ============================================================ -->
+  <div id="password-modal" class="hidden">
+    <div id="password-box">
+      <h3>Admin Access</h3>
+      <p>Enter your password to access the admin dashboard.</p>
+      <input type="password" id="password-input" placeholder="••••••••" autocomplete="off">
+      <div id="password-error"></div>
+      <div class="btn-row">
+        <button id="btn-pw-cancel">Cancel</button>
+        <button id="btn-pw-confirm">Enter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ADMIN OVERLAY
+       ============================================================ -->
+  <div id="admin-overlay" class="hidden">
+    <div id="admin-panel">
+      <h2>⚙ Admin Dashboard</h2>
+
+      <!-- Appearance -->
+      <div class="admin-section">
+        <h3>Appearance</h3>
+        <div class="admin-row">
+          <label for="input-game-title">Game title</label>
+          <input type="text" id="input-game-title" placeholder="IBM Bee Catcher" style="width:200px;">
+        </div>
+        <div class="admin-row">
+          <label for="input-accent-color">Accent colour (title &amp; buttons)</label>
+          <input type="color" id="input-accent-color" value="#f1c21b" style="width:56px;height:36px;padding:2px;border-radius:4px;border:1px solid #444;background:#2d2d2d;cursor:pointer;">
+        </div>
+        <div class="admin-row">
+          <label for="input-bg-color">Background colour</label>
+          <input type="color" id="input-bg-color" value="#161616" style="width:56px;height:36px;padding:2px;border-radius:4px;border:1px solid #444;background:#2d2d2d;cursor:pointer;">
+        </div>
+      </div>
+
+      <!-- Game Settings -->
+      <div class="admin-section">
+        <h3>Game Settings</h3>
+        <div class="admin-row">
+          <label for="input-duration">Game duration (seconds)</label>
+          <input type="number" id="input-duration" min="5" max="120" value="10">
+        </div>
+        <div class="admin-row">
+          <label for="input-difficulty">Difficulty</label>
+          <select id="input-difficulty">
+            <option value="easy">Easy — slow bees</option>
+            <option value="medium" selected>Medium — normal speed</option>
+            <option value="hard">Hard — fast bees</option>
+            <option value="insane">Insane — very fast bees</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Prize Tiers -->
+      <div class="admin-section">
+        <h3>Prize Tiers</h3>
+        <div class="tier-header">
+          <span>Tier Name</span>
+          <span>Min Bees</span>
+          <span>Gift / Prize</span>
+          <span>Gift Image (preset or upload)</span>
+          <span></span>
+        </div>
+        <div id="tiers-list"></div>
+        <button id="btn-add-tier" class="btn-add-tier">+ Add Tier</button>
+      </div>
+
+      <!-- Actions -->
+      <div class="admin-actions">
+        <button class="btn-close-admin" id="btn-close-admin">Cancel</button>
+        <button class="btn-save" id="btn-save-admin">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts: admin.js must come first (defines AdminConfig used by game.js) -->
+  <script src="admin.js"></script>
+  <script src="game.js"></script>
+
+</body>
+</html>
