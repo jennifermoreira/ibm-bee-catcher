@@ -138,12 +138,30 @@
         <div class="tier-header">
           <span>Tier Name</span>
           <span>Min Bees</span>
-          <span>Gift / Prize</span>
-          <span>Gift Image (preset or upload)</span>
+          <span>Gift Options (A &amp; B) with Qty</span>
           <span></span>
         </div>
         <div id="tiers-list"></div>
         <button id="btn-add-tier" class="btn-add-tier">+ Add Tier</button>
+      </div>
+
+      <!-- Gift Inventory / Balance -->
+      <div class="admin-section">
+        <h3>Gift Inventory &amp; Balance</h3>
+        <p class="inv-note">Balances update automatically after each game. Use ↺ Reset to restore a tier's quantities to the configured values.</p>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Gift A</th>
+              <th>Balance</th>
+              <th>Gift B</th>
+              <th>Balance</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="inventory-body"></tbody>
+        </table>
       </div>
 
       <!-- Actions -->
