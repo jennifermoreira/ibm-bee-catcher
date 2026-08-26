@@ -4,16 +4,19 @@
 
 // ── Preset Gifts (derived from images in folder) ───────────────────────────
 const PRESET_GIFTS = [
-  { name: 'Backpack',                  file: 'backpack.png' },
-  { name: 'Drawstring Bag with Towel', file: 'drawstring bag with towel.png' },
-  { name: 'Notepad',                   file: 'Notepad.png' },
-  { name: 'Pouch',                     file: 'pouch.png' },
-  { name: 'Umbrella',                  file: 'umbrella.png' },
+  { name: 'Notebook with Post-it Notes', file: 'Notebook with Post it Notes.png' },
+  { name: 'Canvas Tote Bag',             file: 'Canvas Tote Bag.png' },
+  { name: 'Pen',                         file: 'Pen.png' },
+  { name: 'Color Changing Cup',          file: 'Color Changing Cup.png' },
+  { name: 'Mobile Phone Stand',          file: 'Mobile Phone Stand.png' },
+  { name: 'Notebook',                    file: 'Notebook.png' },
+  { name: 'Bamboo Charging Cable Set',   file: 'Bamboo Charging Cable Set.png' },
 ];
 
 // ── Default Config ─────────────────────────────────────────────────────────
-const ADMIN_PASSWORD = 'admin123';
-const STORAGE_KEY    = 'ibm_bee_catcher_config';
+const ADMIN_PASSWORD  = 'admin123';
+const STORAGE_KEY     = 'ibm_bee_catcher_config_v2';
+const INVENTORY_KEY   = 'ibm_bee_catcher_inventory_v2';
 
 const DEFAULT_CONFIG = {
   duration:    10,
@@ -22,10 +25,26 @@ const DEFAULT_CONFIG = {
   accentColor: '#f1c21b',
   bgColor:     '#161616',
   tiers: [
-    { name: 'Bronze Bee',   minBees: 1,  gift: 'Pouch',                    giftImage: 'pouch.png' },
-    { name: 'Silver Bee',   minBees: 5,  gift: 'Notepad',                  giftImage: 'Notepad.png' },
-    { name: 'Golden Bee',   minBees: 10, gift: 'Drawstring Bag with Towel', giftImage: 'drawstring bag with towel.png' },
-    { name: 'Diamond Bee',  minBees: 15, gift: 'Backpack',                  giftImage: 'backpack.png' },
+    {
+      name: 'Bronze Bee',  minBees: 1,
+      gift1: 'Notebook with Post-it Notes', giftImage1: 'Notebook with Post it Notes.png', qty1: 65,
+      gift2: 'Canvas Tote Bag',             giftImage2: 'Canvas Tote Bag.png',             qty2: 70,
+    },
+    {
+      name: 'Silver Bee',  minBees: 12,
+      gift1: 'Pen',                         giftImage1: 'Pen.png',                          qty1: 100,
+      gift2: '',                            giftImage2: '',                                  qty2: 0,
+    },
+    {
+      name: 'Golden Bee',  minBees: 18,
+      gift1: 'Color Changing Cup',          giftImage1: 'Color Changing Cup.png',           qty1: 100,
+      gift2: '',                            giftImage2: '',                                  qty2: 0,
+    },
+    {
+      name: 'Diamond Bee', minBees: 25,
+      gift1: 'Bamboo Charging Cable Set',   giftImage1: 'Bamboo Charging Cable Set.png',   qty1: 10,
+      gift2: 'Mobile Phone Stand',          giftImage2: 'Mobile Phone Stand.png',           qty2: 15,
+    },
   ],
 };
 
@@ -41,6 +60,58 @@ const AdminConfig = {
   },
   save(cfg) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  },
+};
+
+// ── Inventory Store ────────────────────────────────────────────────────────
+// Inventory is stored separately so reloading config doesn't wipe balances.
+// Shape: { [tierName]: { qty1: number, qty2: number } }
+const Inventory = {
+  get() {
+    try {
+      const stored = localStorage.getItem(INVENTORY_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  },
+  save(inv) {
+    localStorage.setItem(INVENTORY_KEY, JSON.stringify(inv));
+  },
+  // Initialise missing tiers from config (called after config save)
+  syncFromConfig(cfg) {
+    const inv = this.get();
+    cfg.tiers.forEach(t => {
+      if (!inv[t.name]) {
+        inv[t.name] = { qty1: t.qty1, qty2: t.qty2 };
+      }
+    });
+    this.save(inv);
+    return inv;
+  },
+  // Fully reset a tier's balance to the config quantities (called on Save)
+  resetTier(tierName, qty1, qty2) {
+    const inv = this.get();
+    inv[tierName] = { qty1, qty2 };
+    this.save(inv);
+  },
+  // Deduct one gift from a tier. slot = 1 or 2. Returns true if successful.
+  deduct(tierName, slot) {
+    const inv = this.get();
+    if (!inv[tierName]) return false;
+    const key = `qty${slot}`;
+    if (inv[tierName][key] > 0) {
+      inv[tierName][key]--;
+      this.save(inv);
+      return true;
+    }
+    return false;
+  },
+  // Return remaining qty for a slot in a tier
+  balance(tierName, slot) {
+    const inv = this.get();
+    if (!inv[tierName]) return 0;
+    return inv[tierName][`qty${slot}`] || 0;
   },
 };
 
@@ -61,6 +132,7 @@ const tiersList        = document.getElementById('tiers-list');
 const btnAddTier       = document.getElementById('btn-add-tier');
 const btnSaveAdmin     = document.getElementById('btn-save-admin');
 const btnCloseAdmin    = document.getElementById('btn-close-admin');
+const inventoryBody    = document.getElementById('inventory-body');
 
 // ── Keyboard Shortcut: Ctrl + Shift + Z ────────────────────────────────────
 document.addEventListener('keydown', (e) => {
@@ -124,6 +196,9 @@ function openAdminPanel() {
   // Populate tiers
   renderTiers(cfg.tiers);
 
+  // Populate inventory balance table
+  renderInventory(cfg.tiers);
+
   adminOverlay.classList.remove('hidden');
 }
 
@@ -150,6 +225,10 @@ btnSaveAdmin.addEventListener('click', () => {
 
   const cfg = { duration, difficulty, gameTitle, accentColor, bgColor, tiers };
   AdminConfig.save(cfg);
+
+  // Reset inventory balances to the newly saved quantities
+  tiers.forEach(t => Inventory.resetTier(t.name, t.qty1, t.qty2));
+
   applyAppearance(cfg);
   closeAdminPanel();
 
@@ -157,10 +236,48 @@ btnSaveAdmin.addEventListener('click', () => {
   showAdminToast('Settings saved!');
 });
 
+// ── Inventory Balance Table ────────────────────────────────────────────────
+function renderInventory(tiers) {
+  const inv = Inventory.get();
+  inventoryBody.innerHTML = '';
+
+  tiers.forEach(t => {
+    const b1 = inv[t.name] !== undefined ? inv[t.name].qty1 : t.qty1;
+    const b2 = inv[t.name] !== undefined ? inv[t.name].qty2 : t.qty2;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="inv-tier">${escHtml(t.name)}</td>
+      <td class="inv-gift">${escHtml(t.gift1 || '—')}</td>
+      <td class="inv-qty ${b1 === 0 ? 'inv-empty' : ''}">${b1}</td>
+      <td class="inv-gift">${escHtml(t.gift2 || '—')}</td>
+      <td class="inv-qty ${b2 === 0 ? 'inv-empty' : ''}">${t.gift2 ? b2 : '—'}</td>
+      <td><button class="inv-reset-btn" data-tier="${escHtml(t.name)}" data-qty1="${t.qty1}" data-qty2="${t.qty2}" title="Reset to configured quantities">↺ Reset</button></td>
+    `;
+    inventoryBody.appendChild(row);
+  });
+
+  // Attach reset listeners
+  inventoryBody.querySelectorAll('.inv-reset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.tier;
+      const q1   = parseInt(btn.dataset.qty1, 10);
+      const q2   = parseInt(btn.dataset.qty2, 10);
+      Inventory.resetTier(name, q1, q2);
+      renderInventory(AdminConfig.get().tiers);
+      showAdminToast(`Balance reset for "${name}"`);
+    });
+  });
+}
+
 // ── Tier Rendering ─────────────────────────────────────────────────────────
 function renderTiers(tiers) {
   tiersList.innerHTML = '';
-  tiers.forEach((t) => addTierRow(t.name, t.minBees, t.gift, t.giftImage || ''));
+  tiers.forEach((t) => addTierRow(
+    t.name, t.minBees,
+    t.gift1, t.giftImage1 || '', t.qty1 || 0,
+    t.gift2, t.giftImage2 || '', t.qty2 || 0,
+  ));
 }
 
 function buildPresetOptions(currentGiftImage) {
@@ -172,85 +289,114 @@ function buildPresetOptions(currentGiftImage) {
   return none + opts;
 }
 
-function addTierRow(name = '', minBees = '', gift = '', giftImage = '') {
+function addTierRow(
+  name = '', minBees = '',
+  gift1 = '', giftImage1 = '', qty1 = 0,
+  gift2 = '', giftImage2 = '', qty2 = 0,
+) {
   const row = document.createElement('div');
   row.className = 'tier-row';
 
-  // Determine if the stored giftImage is a preset filename or a custom base64
-  const isPreset  = giftImage && !giftImage.startsWith('data:');
-  const isCustom  = giftImage && giftImage.startsWith('data:');
-  const previewSrc = isPreset ? giftImage : (isCustom ? giftImage : '');
-
   row.innerHTML = `
-    <input type="text"   class="tier-name"     placeholder="Tier name"   value="${escHtml(name)}">
-    <input type="number" class="tier-min-bees" placeholder="Min bees"    value="${minBees}" min="0">
-    <input type="text"   class="tier-gift"     placeholder="Gift / prize" value="${escHtml(gift)}">
-    <div class="tier-img-cell">
-      <div class="tier-img-picker">
-        <select class="tier-preset-select">${buildPresetOptions(isPreset ? giftImage : '')}</select>
-        <span class="tier-img-or">or</span>
-        <label class="btn-upload" title="Upload custom image">
-          ${previewSrc ? `<img class="tier-img-preview" src="${previewSrc}" alt="preview">` : '<span>+ Upload</span>'}
-          <input type="file" class="tier-img-input" accept="image/*" style="display:none">
-        </label>
-        ${previewSrc ? `<img class="tier-img-thumb" src="${previewSrc}" alt="gift preview">` : `<img class="tier-img-thumb hidden" src="" alt="gift preview">`}
-      </div>
+    <input type="text"   class="tier-name"     placeholder="Tier name"  value="${escHtml(name)}">
+    <input type="number" class="tier-min-bees" placeholder="Min bees"   value="${minBees}" min="0">
+    <div class="tier-gift-pair">
+      ${buildGiftSlot(1, gift1, giftImage1, qty1)}
+      ${buildGiftSlot(2, gift2, giftImage2, qty2)}
     </div>
     <button class="btn-icon" title="Remove tier">✕</button>
   `;
 
-  // Track the resolved image (preset path or base64)
-  row._giftImage = giftImage;
+  // Init slot state tracking
+  row._giftImage1 = giftImage1;
+  row._giftImage2 = giftImage2;
 
-  const presetSelect = row.querySelector('.tier-preset-select');
-  const fileInput    = row.querySelector('.tier-img-input');
-  const uploadLabel  = row.querySelector('.btn-upload');
-  const thumb        = row.querySelector('.tier-img-thumb');
-  const giftInput    = row.querySelector('.tier-gift');
+  // Wire up both slots
+  [1, 2].forEach(slot => initSlot(row, slot));
 
-  // When a preset is chosen, update preview + auto-fill gift name
+  row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
+  tiersList.appendChild(row);
+}
+
+function buildGiftSlot(slot, gift, giftImage, qty) {
+  const isPreset  = giftImage && !giftImage.startsWith('data:');
+  const isCustom  = giftImage && giftImage.startsWith('data:');
+  const previewSrc = isPreset || isCustom ? giftImage : '';
+  const label = slot === 1 ? 'Gift A' : 'Gift B';
+
+  return `
+    <div class="gift-slot" data-slot="${slot}">
+      <span class="gift-slot-label">${label}</span>
+      <input type="text" class="tier-gift tier-gift-${slot}" placeholder="Gift name" value="${escHtml(gift)}">
+      <div class="tier-img-picker">
+        <select class="tier-preset-select tier-preset-select-${slot}">${buildPresetOptions(isPreset ? giftImage : '')}</select>
+        <span class="tier-img-or">or</span>
+        <label class="btn-upload tier-upload-${slot}" title="Upload custom image">
+          ${previewSrc ? `<img class="tier-img-preview" src="${previewSrc}" alt="preview">` : '<span>+ Upload</span>'}
+          <input type="file" class="tier-img-input tier-img-input-${slot}" accept="image/*" style="display:none">
+        </label>
+        ${previewSrc
+          ? `<img class="tier-img-thumb tier-img-thumb-${slot}" src="${previewSrc}" alt="gift preview">`
+          : `<img class="tier-img-thumb tier-img-thumb-${slot} hidden" src="" alt="gift preview">`
+        }
+      </div>
+      <div class="tier-qty-row">
+        <label class="tier-qty-label">Qty</label>
+        <input type="number" class="tier-qty tier-qty-${slot}" placeholder="0" value="${qty}" min="0">
+      </div>
+    </div>
+  `;
+}
+
+function initSlot(row, slot) {
+  const presetSelect = row.querySelector(`.tier-preset-select-${slot}`);
+  const uploadLabel  = row.querySelector(`.tier-upload-${slot}`);
+  const thumb        = row.querySelector(`.tier-img-thumb-${slot}`);
+  const giftInput    = row.querySelector(`.tier-gift-${slot}`);
+  const imgKey       = `_giftImage${slot}`;
+
+  // When a preset is chosen
   presetSelect.addEventListener('change', () => {
     const val = presetSelect.value;
     if (val) {
       const preset = PRESET_GIFTS.find(p => p.file === val);
-      row._giftImage = val;
+      row[imgKey] = val;
       thumb.src = val;
       thumb.classList.remove('hidden');
-      uploadLabel.innerHTML = '<span>+ Upload</span><input type="file" class="tier-img-input" accept="image/*" style="display:none">';
-      reAttachFileListener(row);
-      // Auto-fill gift name only if empty
+      uploadLabel.innerHTML = `<span>+ Upload</span><input type="file" class="tier-img-input tier-img-input-${slot}" accept="image/*" style="display:none">`;
+      reAttachFileListener(row, slot);
       if (!giftInput.value.trim() && preset) giftInput.value = preset.name;
     } else {
-      row._giftImage = '';
+      row[imgKey] = '';
       thumb.src = '';
       thumb.classList.add('hidden');
     }
   });
 
-  function reAttachFileListener(r) {
-    const fi = r.querySelector('.tier-img-input');
-    const ul = r.querySelector('.btn-upload');
-    fi.addEventListener('change', () => {
-      const file = fi.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        r._giftImage = ev.target.result;
-        // Clear preset selection
-        r.querySelector('.tier-preset-select').value = '';
-        ul.innerHTML = `<img class="tier-img-preview" src="${ev.target.result}" alt="preview"><input type="file" class="tier-img-input" accept="image/*" style="display:none">`;
-        const t = r.querySelector('.tier-img-thumb');
-        t.src = ev.target.result;
-        t.classList.remove('hidden');
-        reAttachFileListener(r);
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+  reAttachFileListener(row, slot);
+}
 
-  reAttachFileListener(row);
-  row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
-  tiersList.appendChild(row);
+function reAttachFileListener(row, slot) {
+  const fi     = row.querySelector(`.tier-img-input-${slot}`);
+  const ul     = row.querySelector(`.tier-upload-${slot}`);
+  const thumb  = row.querySelector(`.tier-img-thumb-${slot}`);
+  const imgKey = `_giftImage${slot}`;
+  if (!fi) return;
+
+  fi.addEventListener('change', () => {
+    const file = fi.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      row[imgKey] = ev.target.result;
+      row.querySelector(`.tier-preset-select-${slot}`).value = '';
+      ul.innerHTML = `<img class="tier-img-preview" src="${ev.target.result}" alt="preview"><input type="file" class="tier-img-input tier-img-input-${slot}" accept="image/*" style="display:none">`;
+      thumb.src = ev.target.result;
+      thumb.classList.remove('hidden');
+      reAttachFileListener(row, slot);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 btnAddTier.addEventListener('click', () => addTierRow());
@@ -262,14 +408,18 @@ function collectTiers() {
   for (const row of rows) {
     const name    = row.querySelector('.tier-name').value.trim();
     const minBees = parseInt(row.querySelector('.tier-min-bees').value, 10);
-    const gift    = row.querySelector('.tier-gift').value.trim();
-    const giftImage = row._giftImage || '';
+    const gift1   = row.querySelector('.tier-gift-1').value.trim();
+    const gift2   = row.querySelector('.tier-gift-2').value.trim();
+    const qty1    = parseInt(row.querySelector('.tier-qty-1').value, 10) || 0;
+    const qty2    = parseInt(row.querySelector('.tier-qty-2').value, 10) || 0;
+    const giftImage1 = row._giftImage1 || '';
+    const giftImage2 = row._giftImage2 || '';
 
-    if (!name || isNaN(minBees) || minBees < 0 || !gift) {
-      alert('Please fill in all tier fields correctly (name, min bees ≥ 0, gift).');
+    if (!name || isNaN(minBees) || minBees < 0 || !gift1) {
+      alert('Please fill in all tier fields correctly (name, min bees ≥ 0, and at least Gift A name).');
       return null;
     }
-    tiers.push({ name, minBees, gift, giftImage });
+    tiers.push({ name, minBees, gift1, giftImage1, qty1, gift2, giftImage2, qty2 });
   }
 
   return tiers;
@@ -298,3 +448,5 @@ function showAdminToast(msg) {
 
 // ── Apply saved appearance on page load ────────────────────────────────────
 applyAppearance(AdminConfig.get());
+// Seed inventory for any tiers that don't yet have a balance entry
+Inventory.syncFromConfig(AdminConfig.get());

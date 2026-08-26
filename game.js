@@ -422,24 +422,50 @@ function showResult(score) {
     resultNoPrize.classList.remove('hidden');
     resultNoPrize.textContent = "No bees caught this time — give it another try!";
   } else if (won) {
-    resultPrize.classList.remove('hidden');
-    resultGiftPanel.classList.remove('hidden');
-    resultNoPrize.classList.add('hidden');
-    resultPrize.querySelector('.prize-name').textContent = won.name;
-    resultPrize.querySelector('.prize-gift').textContent = won.gift;
-    if (won.giftImage) {
-      giftImg.src = won.giftImage;
-      giftImg.classList.remove('hidden');
-    } else {
-      giftImg.src = '';
-      giftImg.classList.add('hidden');
+    // Pick a gift based on available inventory: try gift1 first, then gift2
+    let assignedGift  = null;
+    let assignedImage = '';
+    let assignedSlot  = 0;
+
+    const b1 = Inventory.balance(won.name, 1);
+    const b2 = Inventory.balance(won.name, 2);
+
+    if (b1 > 0) {
+      assignedGift  = won.gift1;
+      assignedImage = won.giftImage1 || '';
+      assignedSlot  = 1;
+    } else if (won.gift2 && b2 > 0) {
+      assignedGift  = won.gift2;
+      assignedImage = won.giftImage2 || '';
+      assignedSlot  = 2;
     }
-    // Celebration effects when prize is won
-    setTimeout(() => {
-      playCelebration();
-      launchConfetti();
-      flashLight();
-    }, 150);
+
+    if (assignedGift) {
+      // Deduct from inventory
+      Inventory.deduct(won.name, assignedSlot);
+
+      resultPrize.classList.remove('hidden');
+      resultGiftPanel.classList.remove('hidden');
+      resultNoPrize.classList.add('hidden');
+      resultPrize.querySelector('.prize-name').textContent = won.name;
+      resultPrize.querySelector('.prize-gift').textContent = assignedGift;
+      if (assignedImage) {
+        giftImg.src = assignedImage;
+        giftImg.classList.remove('hidden');
+      }
+      // Celebration effects when prize is won
+      setTimeout(() => {
+        playCelebration();
+        launchConfetti();
+        flashLight();
+      }, 150);
+    } else {
+      // Won the tier but both gifts are out of stock
+      resultPrize.classList.add('hidden');
+      resultGiftPanel.classList.add('hidden');
+      resultNoPrize.classList.remove('hidden');
+      resultNoPrize.textContent = "Amazing catch! Please see our booth staff for your prize.";
+    }
   } else {
     // Caught some bees but not enough for a tier — hide both boxes
     resultPrize.classList.add('hidden');

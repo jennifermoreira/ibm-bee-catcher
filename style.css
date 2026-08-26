@@ -362,6 +362,17 @@ html, body {
   padding: 32px 16px;
 }
 
+/* Disclaimer shown on result screen */
+.result-disclaimer {
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+  color: rgba(255,255,255,0.45);
+  font-style: italic;
+  text-align: center;
+  max-width: 480px;
+  padding: 4px 20px 2px;
+  line-height: 1.5;
+}
+
 /* Bottom action row */
 #result-footer-row {
   padding: 10px 32px 16px;
@@ -466,13 +477,17 @@ html, body {
 }
 
 /* Prize tiers table */
-#tiers-list { display: flex; flex-direction: column; gap: 10px; }
+#tiers-list { display: flex; flex-direction: column; gap: 14px; }
 
 .tier-row {
   display: grid;
-  grid-template-columns: 1fr 90px 1fr 1fr auto;
+  grid-template-columns: 120px 80px 1fr auto;
   gap: 8px;
-  align-items: center;
+  align-items: start;
+  padding: 10px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
 }
 
 .tier-row input[type="text"],
@@ -487,6 +502,51 @@ html, body {
 }
 
 .tier-row input::placeholder { color: #666; }
+
+/* Two gift slots side by side */
+.tier-gift-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gift-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 5px;
+  padding: 8px;
+}
+
+.gift-slot-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #f1c21b;
+  font-weight: 600;
+}
+
+/* Qty row inside each gift slot */
+.tier-qty-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.tier-qty-label {
+  font-size: 0.78rem;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.tier-qty {
+  width: 64px !important;
+  padding: 4px 6px !important;
+  font-size: 0.85rem !important;
+}
 
 /* Gift image cell — preset dropdown + optional upload */
 .tier-img-cell { display: flex; align-items: center; }
@@ -723,11 +783,79 @@ html, body {
 /* Tier header labels */
 .tier-header {
   display: grid;
-  grid-template-columns: 1fr 90px 1fr 1fr auto;
+  grid-template-columns: 120px 80px 1fr auto;
   gap: 8px;
   font-size: 0.78rem;
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0 2px;
+}
+
+/* =============================================
+   INVENTORY TABLE
+   ============================================= */
+.inv-note {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.inv-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  padding: 6px 8px;
+  border-bottom: 1px solid #333;
+}
+
+.inv-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #2a2a2a;
+  vertical-align: middle;
+}
+
+.inv-tier {
+  font-weight: 600;
+  color: var(--ibm-yellow);
+  white-space: nowrap;
+}
+
+.inv-gift {
+  color: #ccc;
+}
+
+.inv-qty {
+  font-weight: 700;
+  color: #24a148;
+  text-align: center;
+  width: 52px;
+}
+
+.inv-qty.inv-empty {
+  color: #da1e28;
+}
+
+.inv-reset-btn {
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.inv-reset-btn:hover {
+  border-color: var(--ibm-yellow);
+  color: var(--ibm-yellow);
 }
