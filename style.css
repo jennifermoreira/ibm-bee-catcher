@@ -952,6 +952,22 @@ html, body {
   margin-left: auto;
 }
 
+.btn-reset-daily {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.btn-reset-daily:hover {
+  border-color: var(--ibm-red);
+  color: var(--ibm-red);
+}
+
 .daily-count {
   text-align: center;
   width: 52px;

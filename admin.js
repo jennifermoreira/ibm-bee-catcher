@@ -239,6 +239,16 @@ const DailyStats = {
   getToday() {
     return this._localGet(this._todayKey());
   },
+
+  // Reset today's distribution counts to zero in both Firebase and localStorage
+  resetToday() {
+    const dateKey = this._todayKey();
+    this._localSave(dateKey, {});
+    if (_fbDb) {
+      _fbDb.ref(`${FB_DAILY_PATH}/${dateKey}`).set({})
+        .catch(e => console.warn('[BeeCatcher] DailyStats reset failed:', e));
+    }
+  },
 };
 
 // ── Live Firebase Listener — keeps local cache and admin panel in sync ──────
@@ -550,6 +560,16 @@ function renderDailyStats(tiers) {
   statsBadge.textContent = grandTotal;
   statsBadge.className   = grandTotal > 0 ? 'daily-total-badge daily-total-active' : 'daily-total-badge';
 }
+
+// ── Reset Distribution Button ──────────────────────────────────────────────
+document.getElementById('btn-reset-daily').addEventListener('click', () => {
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const confirmed = window.confirm(`Reset today's distribution counts to zero?\n\n${today}\n\nThis cannot be undone.`);
+  if (!confirmed) return;
+  DailyStats.resetToday();
+  renderDailyStats(AdminConfig.get().tiers);
+  showAdminToast("Today's distribution has been reset to zero.");
+});
 
 // ── Inventory Balance Table ────────────────────────────────────────────────
 function renderInventory(tiers) {
